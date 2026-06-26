@@ -1,0 +1,145 @@
+You're looking to perform both Dijkstra's algorithm for shortest paths in a weighted graph and Breadth-First Search (BFS) on the same graph, with BFS ignoring the weights. This can be achieved by combining and adapting the provided templates.
+
+Here's the combined code, along with explanations based on the templates:
+
+```cpp
+#include<bits/stdc++.h>
+using namespace std;
+
+// --- Global graph definition ---
+// From dijkstra.cpp: 'n' for number of nodes, 'm' for number of edges.
+// 'graph' uses an adjacency list where each element is a pair {neighbor_node, weight}.
+int n,m;
+vector<vector<pair<int,int>>> graph;
+
+// --- Dijkstra's Algorithm (from dijkstra.cpp template) ---
+// Finds the shortest path from a source node to all other nodes in a graph
+// with non-negative edge weights. It uses a priority queue to always pick
+// the node with the smallest distance.
+// The 'show_path' function reconstructs and prints the shortest path.
+void show_path(int d,vector<int>&par){
+    if(par[d]==-1){
+        cout<<d<<"->";
+        return;
+    }
+    show_path(par[d],par);
+    cout<<d<<"->";
+}
+
+// The dijkstra function is adapted slightly to print the path and result directly.
+int dijkstra_shortest_path(int s,int d){
+    set<int> vis; // Tracks visited nodes, from dijkstra.cpp template
+    vector<int> par(n,-1),dis(n,INT_MAX); // 'par' for path reconstruction, 'dis' for distances, from dijkstra.cpp template
+    // Priority queue stores pairs of {distance, node}, ordered by distance (smallest first).
+    priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> pq;
+    
+    dis[s]=0; // Distance to source is 0
+    pq.push({0,s}); // Push source with distance 0 to PQ
+    
+    while(pq.size()){
+        auto x=pq.top(); // Get node with smallest distance
+        pq.pop();
+        
+        if(vis.find(x.second)!=vis.end()) continue; // Skip if already visited
+        vis.insert(x.second); // Mark as visited
+        
+        // Iterate over neighbors of the current node
+        for(auto&neb:graph[x.second]){
+            // If neighbor not visited and a shorter path is found
+            if(vis.find(neb.first)==vis.end() && dis[neb.first]>dis[x.second]+neb.second){
+                pq.push({dis[x.second]+neb.second,neb.first}); // Push updated distance
+                dis[neb.first]=dis[x.second]+neb.second; // Update distance
+                par[neb.first]=x.second; // Update parent for path reconstruction
+            }
+        }
+    }
+    
+    cout << "Shortest weighted path from " << s << " to " << d << ": ";
+    if (dis[d] == INT_MAX) {
+        cout << "No path\n";
+    } else {
+        show_path(d,par);
+        cout << "\n";
+    }
+    return dis[d];
+}
+
+// --- BFS Algorithm (adapted from bfs.cpp template) ---
+// BFS (Breadth-First Search) is a graph traversal algorithm.
+// It explores all nodes at the current level before moving to the next level.
+// It is commonly used to find shortest paths in an unweighted graph.
+// This version is adapted to work with the weighted graph representation but ignores edge weights.
+void bfs_unweighted_path(int s, int num_nodes){
+    queue<int> q; // Queue for BFS traversal, from bfs.cpp template
+    // 'dis_bfs' stores unweighted distances (number of edges) from source.
+    // 'vis_bfs' tracks visited nodes for BFS, using unordered_set as in bfs.cpp template.
+    vector<int> dis_bfs(num_nodes, -1); 
+    unordered_set<int> vis_bfs; 
+
+    q.push(s); // Start BFS from source node
+    dis_bfs[s]=0; // Distance to source is 0 edges
+    vis_bfs.insert(s); // Mark source as visited
+
+    cout << "BFS traversal order starting from node " << s << ": ";
+    while(q.size()){
+        int node=q.front(); // Get current node from queue
+        q.pop();
+        cout<<node<<" "; // Print node as it's visited
+
+        // Iterate through neighbors in the weighted graph representation.
+        // For BFS, we only care about the neighbor node (edge.first) and ignore the weight (edge.second).
+        for(auto& edge : graph[node]){
+            int neighbor = edge.first; // Get the neighbor node
+            if(vis_bfs.find(neighbor)==vis_bfs.end()){ // If neighbor not visited
+                q.push(neighbor); // Add to queue
+                vis_bfs.insert(neighbor); // Mark as visited
+                dis_bfs[neighbor]=dis_bfs[node]+1; // Update unweighted distance
+            }
+        }
+    }
+    cout << "\n";
+    
+    // Display unweighted distances found by BFS
+    cout << "BFS unweighted distances from source " << s << ":\n";
+    for (int i = 0; i < num_nodes; ++i) {
+        if (dis_bfs[i] != -1) {
+            cout << "Node " << i << ": " << dis_bfs[i] << "\n";
+        } else {
+            cout << "Node " << i << ": Unreachable\n";
+        }
+    }
+}
+
+int main(){
+    // Graph initialization and input inspired by bfs.cpp's main structure.
+    cout << "Enter NO. of Vertices (n) and Edges (m): ";
+    cin >> n >> m;
+
+    graph.resize(n); // Resize the global graph to hold 'n' nodes
+
+    cout << "Enter " << m << " edges (source, destination, weight):\n";
+    for(int i=0; i<m; ++i){
+        int u, v, w;
+        cin >> u >> v >> w;
+        graph[u].push_back({v, w}); // Add directed edge with weight
+        // If your graph is undirected, uncomment the following line:
+        // graph[v].push_back({u, w});
+    }
+
+    // Example calls for Dijkstra's and BFS
+    int source_node = 0; // Choose a source node for both algorithms
+    int destination_node = n > 1 ? 1 : 0; // Choose a destination node for Dijkstra (if graph has >1 node)
+
+    cout << "\n--- Performing Dijkstra's Algorithm ---\n";
+    // Call the Dijkstra function to find shortest weighted path
+    int shortest_weighted_dist = dijkstra_shortest_path(source_node, destination_node);
+    cout << "Overall shortest weighted distance from " << source_node << " to " << destination_node << " is: " 
+         << (shortest_weighted_dist == INT_MAX ? "No path" : to_string(shortest_weighted_dist)) << "\n";
+
+    cout << "\n--- Performing BFS (Unweighted Shortest Path) ---\n";
+    // Call the BFS function to find unweighted shortest paths and traversal order
+    bfs_unweighted_path(source_node, n);
+
+    return 0;
+}
+```
